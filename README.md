@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Isomorphic fetcher demo
 
-## Getting Started
+This is a basic demo for a new way of fetching data during SSR. It was built as a quick and dirty proof of concept and is very much work in progress and still exploratory. There are many rough edges, beware.
 
-First, run the development server:
+Inspired by original idea and implementation by @dvoytenko.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+This implementation aims to explore tweaking the original idea into a low level transport layer and:
+
+* Only support Suspense
+* Support React 18
+* Not have any dependencies on specific frameworks or libraries
+
+The public API is just two things (names can very much be improved).
+
+* `<IsoFetchProvider serverConfig clientConfig ... />`
+* `useIsoFetcher()`
+  
+You pass in a fetchFn for the server, and one for the client. These are wrapped and you call useIsoFetcher() to get that fetcher. The magic is that during SSR, any call made to this fetcher actually executes in a Server Component Context(!). This means the server fetchFn has access to cookies and can do auth etc.
+
+The result is streamed back down to the SSR pass and the client. What this all means is that this just works (demo with React query):
+
+```tsx
+  const { id } = useParams<{ id: string }>();
+  const fetcher = useIsoFetcher();
+
+  const { data } = useSuspenseQuery({
+    queryKey: ["key", id],
+    queryFn: async () => {
+      const result = await fetcher(`/api/${id}`);
+
+      return result.data;
+    },
+  });
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
